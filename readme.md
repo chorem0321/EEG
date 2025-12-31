@@ -76,3 +76,88 @@ In this study, EEG spectral analysis and complexity analysis were used as resear
 Lai K, Chen X, He L, et al. Identifying Features of Electroencephalography Associated with Improved Awareness in Persistent Vegetative State via Multiscale Entropy: A Machine Learning Modeling Study, Neurotrauma Reports 2025:6(1):720–731, doi: 10.1177/2689288X251369274.
 
 First purpose : distinguish consciousness and unconsciousness brainwave frequency by FFT
+
+
+현재 PVS/MCS 데이터셋을 구하는 것이 너무 어렵기 때문에 정상인의 EEG에서 의식이 개입된 상태 vs 자동/비의식 상태를 먼저 학습시키는 것으로 proxy-task를 잡도록 하겠음. feature 정의부터 해봅시다:
+
+### connectivity feature
+- connectivity feature
+의식 상태에서 가장 죽요한 특징은 장거리 연결 (long-raange connectivity (frontal-parietal 전두-두정)) 를 보는 것인데 PVS/UWS는 국소 연결만 남고 MCS/의식의 상태에서는 장거리 정보 통합이 많기 때문에 이 feature를 중심으로 볼 예정
+    - Phase Locking Value (PLV)
+    두 채널이 위상 동기화 되어있는가를 보는 것
+    짧은 epoch에서도 안정적으로 확인 가능함
+- Imaginary Coherence
+EEG는 같은 소스를 여러 전극이 동시에 잡는 문제가 있기 때문에 Imaginary coherence를 활용하여 실제 상호작용만 반영하는 방향으로 volume conduction 문제를 타개한다.
+
+### EEG에서 바로 쓸 수 있는 complexity feature
+- Lempel-Ziv Complexity (LZC)
+EEG를 이진화하여 패턴 수를 계산하는 방법이고 현재 PVS/MCS/마취 연구에서 많이 사용된다
+
+- Multiscale Entropy (MSE)
+시간 스케일별 복잡성
+의식 수준 변화에 매우 민감
+그러나 데이터가 짧으면 불안정하기 때문에 LZC를 먼저 사용하되 MSE도 사용하는 것을 중심으로 분석하겠음
+
+```
+구현개념
+EEG signal
+-> Normalize
+-> Threshold (median)
+-> Binary sequence
+-> LZ complexity
+```
+
+"이게 무의식이다" 라는 것 보다 "의식적 개입이 상대적으로 적다" 라는 말을 사용하는 것이 타당함.
+
+Motor Imagery:
+resting - 낮음
+motor imagery - 높음
+실제 운동 - 중간 (자동성이 높기 때문)
+
+Emotion EEG:
+neutral - baseline
+affective - subjective awareness 높음
+
+```
+현재 파이프라인
+
+Raw EEG
+ ├─ Time-frequency (STFT / wavelet) → CNN
+ ├─ Connectivity (PLV, alpha/gamma) → feature vector
+ └─ Complexity (LZC, entropy) → feature vector
+
+CNN output
+   ↓
+[concat]
+   ↓
+MLP
+   ↓
+Conscious vs Non-conscious
+```
+```
+future pipeline
+
+[
+  mean alpha power,
+  gamma power,
+  frontal-parietal PLV,
+  global PLV,
+  LZC_mean,
+  MSE_scale1,
+  MSE_scale5
+]
+```
+
+Abbeviation:
+PLV - phase locking value 두 EEG 채널이 위상을 얼마나 일정하게 맞추고 있느냐 = 서로 먼 뇌의 영역들이 "대화중" 이다
+
+전체 채널 평균 PLV, frontal-parietal 평균, alpha-PLV/gamma-PLV
+
+LZC - Lempel-Ziv Complexity (LZC) 신호 안에 새로운 패턴이 얼마나 자주 등장하는가
+반복적 - LZC 낮음 (PVS/마취 상태)
+다양하고 구조적 LZC 높음 (높은 의식상태)
+마찬가지로 채널벌 LZC, 평균 LZC, 전두 vs 후두 비교
+
+MSE - Multiscale Entropy
+여러 시간의 스케일에서 본 신호의 복잡성 (단일 entropy보다 훨씬 강력하다)
+why using?: EEG는 빠른 변화 (gamma), 느린 변화 (delta)가 동시에 존재하기 때문에 한 스케일로는 의식을 못 잡는다.
