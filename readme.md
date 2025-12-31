@@ -148,7 +148,7 @@ future pipeline
 ]
 ```
 
-Abbeviation:
+## Abbeviation:
 PLV - phase locking value 두 EEG 채널이 위상을 얼마나 일정하게 맞추고 있느냐 = 서로 먼 뇌의 영역들이 "대화중" 이다
 
 전체 채널 평균 PLV, frontal-parietal 평균, alpha-PLV/gamma-PLV
@@ -161,3 +161,11 @@ LZC - Lempel-Ziv Complexity (LZC) 신호 안에 새로운 패턴이 얼마나 �
 MSE - Multiscale Entropy
 여러 시간의 스케일에서 본 신호의 복잡성 (단일 entropy보다 훨씬 강력하다)
 why using?: EEG는 빠른 변화 (gamma), 느린 변화 (delta)가 동시에 존재하기 때문에 한 스케일로는 의식을 못 잡는다.
+
+### 참고자료
+
+HMS - Harmful Brain Activity Classification (Harvard Medical School 에서 host한 competition)
+https://www.kaggle.com/competitions/hms-harmful-brain-activity-classification
+
+How to make Spectrogram from EEG
+https://www.kaggle.com/code/cdeotte/how-to-make-spectrogram-from-eeg
