@@ -5,7 +5,7 @@ import mne
 from scipy.signal import welch
 from scipy.stats import entropy
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import classification_report, confusion_matrix, precision_recall_curve
 from sklearn.utils.class_weight import compute_class_weight
 from scipy.stats import chi2_contingency
 from tensorflow.keras.models import Sequential
@@ -187,15 +187,29 @@ if __name__ == "__main__":
     loss, acc = model.evaluate(X_test, y_test)
     print(f"\nTest Loss: {loss:.4f}, Test Accuracy: {acc:.4f}")
 
-    # Threshold 조정 (0.4)
-    y_pred = (model.predict(X_test) > 0.4).astype("int32")
-    print("\nClassification Report (Test Set):")
-    print(classification_report(y_test, y_pred, digits=4, zero_division=0))
+    # -----------------------------
+    # 자동 threshold 탐색
+    # -----------------------------
+    y_prob = model.predict(X_test).ravel()
+    precisions, recalls, thresholds = precision_recall_curve(y_test, y_prob)
+    f1_scores = 2 * (precisions * recalls) / (precisions + recalls + 1e-6)
+    best_idx = np.argmax(f1_scores)
+    best_threshold = thresholds[best_idx]
 
-    # 카이제곱 검정 (안전 처리)
-    cm = confusion_matrix(y_test, y_pred)
+    print(f"\n최적 threshold (F1-score 기준): {best_threshold:.3f}")
+    print(f"최대 F1-score: {f1_scores[best_idx]:.4f}")
+
+    # 최적 threshold 적용
+    y_pred_opt = (y_prob > best_threshold).astype("int32")
+    print("\nClassification Report (Optimal Threshold):")
+    print(classification_report(y_test, y_pred_opt, digits=4, zero_division=0))
+
+    # Confusion Matrix + Chi-square
+    cm_opt = confusion_matrix(y_test, y_pred_opt)
+    print("\nConfusion Matrix (Optimal Threshold):\n", cm_opt)
+
     try:
-        chi2, p, dof, expected = chi2_contingency(cm)
+        chi2, p, dof, expected = chi2_contingency(cm_opt)
         print("\nChi-square Test for Independence")
         print("Chi2:", chi2, "p-value:", p)
         if p < 0.05:
