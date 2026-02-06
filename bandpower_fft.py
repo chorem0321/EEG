@@ -49,6 +49,70 @@ def label_consciousness(features):
 # -----------------------------
 # (이전과 동일, 생략 없이 그대로 사용)
 
+def load_csv_data(base_dir="archive (1)/Dataset"):
+    X, y = [], []
+    for user in ["user_a.csv", "user_b.csv", "user_c.csv", "user_d.csv"]:
+        df = pd.read_csv(os.path.join(base_dir, user))
+        signals = df.values
+        sfreq = 128
+        win_size = 256
+        for i in range(0, len(signals)-win_size, win_size):
+            seg = signals[i:i+win_size, :].T
+            features = compute_features(seg[0], sfreq)
+            lab = label_consciousness(features)
+            X.append(features)
+            y.append(lab)
+    return np.array(X, dtype=np.float32), np.array(y)
+
+def load_gdf_data(base_dir="archive (3)/BCICIV_2a_gdf"):
+    X, y = [], []
+    for subj in range(1, 10):
+        for sess in ["E", "T"]:
+            fname = f"A{subj:02d}{sess}.gdf"
+            file_path = os.path.join(base_dir, fname)
+            if not os.path.exists(file_path):
+                continue
+            raw = mne.io.read_raw_gdf(file_path, preload=True)
+            raw.resample(128)
+            sfreq = int(raw.info['sfreq'])
+            data = raw.get_data()
+            events, _ = mne.events_from_annotations(raw)
+            win_size = int(sfreq * 2)
+            for e in events:
+                start = e[0]
+                for offset in range(0, int(sfreq*7.5)-win_size, win_size):
+                    seg = data[:, start+offset:start+offset+win_size]
+                    if seg.shape[1] < win_size:
+                        continue
+                    features = compute_features(seg[0], sfreq)
+                    lab = label_consciousness(features)
+                    X.append(features)
+                    y.append(lab)
+    return np.array(X, dtype=np.float32), np.array(y)
+
+def load_edf_data(base_dir="archive (5)/files", max_subjects=20):
+    X, y = [], []
+    for subj in range(1, max_subjects+1):
+        subj_id = f"S{subj:03d}"
+        subj_path = os.path.join(base_dir, subj_id)
+        if not os.path.exists(subj_path):
+            continue
+        for fname in os.listdir(subj_path):
+            if fname.endswith(".edf"):
+                file_path = os.path.join(subj_path, fname)
+                raw = mne.io.read_raw_edf(file_path, preload=True)
+                raw.resample(128)
+                sfreq = int(raw.info['sfreq'])
+                win_size = int(sfreq * 2)
+                data = raw.get_data()
+                for start in range(0, data.shape[1]-win_size, win_size):
+                    seg = data[:, start:start+win_size]
+                    features = compute_features(seg[0], sfreq)
+                    lab = label_consciousness(features)
+                    X.append(features)
+                    y.append(lab)
+    return np.array(X, dtype=np.float32), np.array(y)
+
 # -----------------------------
 # 3. 모델 정의 (CNN + BiLSTM)
 # -----------------------------
