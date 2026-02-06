@@ -169,3 +169,26 @@ https://www.kaggle.com/competitions/hms-harmful-brain-activity-classification
 
 How to make Spectrogram from EEG
 https://www.kaggle.com/code/cdeotte/how-to-make-spectrogram-from-eeg
+
+
+### installed EEGs
+
+Personal EEG Concentration Tasks (discard)
+https://www.kaggle.com/datasets/dqmonn/personal-eeg-tasks?resource=download
+
+EEG data from hands movement
+https://www.kaggle.com/datasets/fabriciotorquato/eeg-data-from-hands-movement
+
+EEG based BCI - Motor imagery (discard this one)
+https://www.kaggle.com/datasets/kgreeshmalakshmi/eeg-based-bci-four-class-wheelchair-application 
+
+EEG Motor Imagery Dataset (BCICIV_2a)
+https://www.kaggle.com/datasets/shahidulugvcse/eeg-motor-imagery-dataset-bciciv-2a
+
+EEG motor imager
+https://www.kaggle.com/datasets/hinacui/eeg-motor-imager
+
+EEG Motor Movement/Imagery Dataset-20090909-V1.0.0
+https://www.kaggle.com/datasets/hanyuwange/eeg-motor-movementimagery-dataset-20090909-v1-0-0
+
+gdf file (archive 3 file이 acc 0.5의 주범임, 이새끼 죽여, edf도 마찬가지임, 라벨링 에러인듯 - 둘 다 motor imagery지 의식관련이 아님 ㅇㅇ)
