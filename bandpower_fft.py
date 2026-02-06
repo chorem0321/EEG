@@ -9,7 +9,7 @@ from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.utils.class_weight import compute_class_weight
 from scipy.stats import chi2_contingency
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras.layers import Dense, Dropout, LSTM
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import Callback
 from tqdm import tqdm
@@ -27,7 +27,7 @@ def compute_features(signal, sfreq):
     alpha = band_power(8, 13)
     beta  = band_power(13, 30)
 
-    # band ratio (예: theta/alpha, beta/alpha)
+    # band ratio
     theta_alpha_ratio = theta / (alpha + 1e-6)
     beta_alpha_ratio  = beta / (alpha + 1e-6)
 
@@ -39,11 +39,10 @@ def compute_features(signal, sfreq):
 
 def label_consciousness(features):
     delta, theta, alpha, beta, _, _, spec_entropy = features
-    # 라벨링 기준 강화: δ+θ vs α+β + entropy 조건
     if (delta+theta) >= (alpha+beta) and spec_entropy < 4.0:
-        return 0  # 저의식
+        return 0
     else:
-        return 1  # 의식
+        return 1
 
 # -----------------------------
 # 2. CSV/GDF/EDF 로더
@@ -113,13 +112,14 @@ def load_edf_data(base_dir="archive (5)/files", max_subjects=20):
     return np.array(X, dtype=np.float32), np.array(y)
 
 # -----------------------------
-# 3. 모델 정의 (MLP)
+# 3. 모델 정의 (LSTM)
 # -----------------------------
-def build_mlp(input_dim):
+def build_lstm(input_shape):
     model = Sequential([
-        Dense(64, activation='relu', input_shape=(input_dim,)),
+        LSTM(64, input_shape=input_shape, return_sequences=True),
         Dropout(0.5),
-        Dense(32, activation='relu'),
+        LSTM(32),
+        Dense(16, activation='relu'),
         Dense(1, activation='sigmoid')
     ])
     model.compile(
@@ -163,12 +163,17 @@ if __name__ == "__main__":
         X_temp, y_temp, test_size=0.5, random_state=42, shuffle=True
     )
 
+    # LSTM 입력 형태로 변환 (samples, timesteps=1, features)
+    X_train = np.expand_dims(X_train, axis=1)
+    X_val   = np.expand_dims(X_val, axis=1)
+    X_test  = np.expand_dims(X_test, axis=1)
+
     # 클래스 불균형 보정
     class_weights = compute_class_weight('balanced', classes=np.unique(y_train), y=y_train)
     cw = dict(zip(np.unique(y_train), class_weights))
 
     # 모델 학습
-    model = build_mlp(X_train.shape[1])
+    model = build_lstm((X_train.shape[1], X_train.shape[2]))
     model.fit(
         X_train, y_train,
         epochs=20,
@@ -182,8 +187,8 @@ if __name__ == "__main__":
     loss, acc = model.evaluate(X_test, y_test)
     print(f"\nTest Loss: {loss:.4f}, Test Accuracy: {acc:.4f}")
 
-    # F1-score
-    y_pred = (model.predict(X_test) > 0.5).astype("int32")
+    # Threshold 조정 (0.4)
+    y_pred = (model.predict(X_test) > 0.4).astype("int32")
     print("\nClassification Report (Test Set):")
     print(classification_report(y_test, y_pred, digits=4, zero_division=0))
 
